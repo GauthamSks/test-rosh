@@ -124,3 +124,40 @@ class mongo_DB() :
 
 
 
+
+if (cecid in eng_dict.keys()) :
+                queue_name = eng_dict[cecid].get("queue_name")
+                idx = eng_dict[cecid].get('idx')
+                r_obj.update_eng_availability(queue_name, idx, availability_number)
+
+                match availability_number:
+
+                    case '2':
+                        #Fullday DND/Off-Q
+                        r_obj.set_idx_eng_weight(idx, queue_name, math.inf)
+                    
+                    case '5':
+                        #FH-DND/Off-Q
+                        current_time = Date.now()
+                        end_time = Date.now().replace(hour = 15, minute = 0, second = 0, microsecond = 0)
+
+                        duration = int((end_time-current_time).total_seconds())
+                        r_obj.db.execute_command(f"SET {cecid}_FHDND True EX {duration}")
+                        r_obj.set_idx_eng_weight(idx, queue_name, math.inf)
+
+                    
+                    case '8'|'10':
+                        #FH-HD/FH-ESC
+                        current_time = Date.now()
+                        end_time = Date.now().replace(hour = 15, minute = 0, second = 0, microsecond = 0)
+
+                        duration = int((end_time-current_time).total_seconds())
+                        r_obj.db.execute_command(f"SET {cecid}_FHOFF True EX {duration}")
+                        r_obj.set_idx_eng_weight(idx, queue_name, math.inf)
+                    case '12':
+                        #QM
+                        r_obj.set_idx_eng_weight(idx, queue_name, math.inf)
+                        m_obj.add_qm(cecid)
+    
+            response.markdown = quote_info(f'Availability changed successfully')
+
